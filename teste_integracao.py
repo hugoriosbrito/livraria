@@ -33,7 +33,7 @@ def test_api_integracao():
         print(f"Erro no cadastro: {e}")
 
     import time
-    time.sleep(2) # para garantir que o cadastro foi feito antes de logar, as vezes da erro
+    time.sleep(2) # para garantir que o cadastro foi feito antes de logar
 
     print("\nTeste de login...")
     try:

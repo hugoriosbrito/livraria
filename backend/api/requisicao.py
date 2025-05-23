@@ -205,18 +205,20 @@ class Requisicao:
             return {"status": "erro", "mensagem": "Carrinho vazio"}
 
         itens_pedido = []
-        preco_total = 0
+        preco_total = 0.0
         
         for idLivro, livro in mock_carrinho.items():
+            preco = float(livro["preco"]) if isinstance(livro["preco"], str) else livro["preco"]
+
             item = {
                 "idLivro": str(livro["idLivro"]),
                 "nomeLivro": livro["nomeLivro"],
                 "quantidade": 1, 
-                "preco": str(livro["preco"]),
-                "subtotal": str(livro["preco"])
+                "preco": f"{preco:.2f}",
+                "subtotal": f"{preco:.2f}"
             }
             itens_pedido.append(item)
-            preco_total += livro["preco"]
+            preco_total += preco
 
         taxa_entrega = 5.40
         preco_total += taxa_entrega

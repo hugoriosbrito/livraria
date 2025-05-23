@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
+import hashlib
 from typing import List, Optional
 import random
 import uuid
@@ -24,7 +25,7 @@ class Endereco(BaseModel):
     cep: str
 
 class CadastroUsuario(BaseModel):
-    id_usuario: str = None
+    id_usuario: Optional[str] = None
     nome: str
     email: str
     senha: str
@@ -60,6 +61,13 @@ async def cadastrar_usuario(usuario: CadastroUsuario):
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"{e}")
 
+
+    salt = "salt_de_teste"
+    senha_usuario = usuario.senha+salt
+    usuario.senha = str(hashlib.md5(senha_usuario.encode()).hexdigest())
+
+    print("senha com hash: ", usuario.senha)
+
     usuario.id_usuario = str(uuid.uuid4())
     cadastro_banco = req.cadastrar(usuario.dict())
 
@@ -70,6 +78,14 @@ async def login_usuario(usuario: LoginUsuario):
 
     email_usuario = usuario.email
     senha_usuario = usuario.senha
+
+    salt = "salt_de_teste"
+    senha_usuario = senha_usuario+salt
+    usuario.senha = str(hashlib.md5(senha_usuario.encode()).hexdigest())
+    senha_usuario = usuario.senha
+
+    print("senha com hash: ", usuario.senha)
+
     if not email_usuario or not senha_usuario:
         raise HTTPException(status_code=400, detail="Email e senha são obrigatórios")
 
