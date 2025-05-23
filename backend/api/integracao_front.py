@@ -1,29 +1,42 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from typing import List, Optional,
-
+from typing import List, Optional
+import random
+import uuid
+from backend.validacao.validacao import Validacao
+from backend.api.requisicao import Endpoints, Requisicao
 
 #API DE INTEGRAÇÃO COM O FRONTEND
 
 app = FastAPI()
+validacao = Validacao()
 
-mock_usuarios = {}
-mock_livros = [
-    {"id": "1", "titulo": "O Senhor dos Anéis", "autor": "J.R.R. Tolkien"},
-    {"id": "2", "titulo": "1984", "autor": "George Orwell"},
-    {"id": "3", "titulo": "Dom Quixote", "autor": "Miguel de Cervantes"}
-]
-mock_carrinhos = {}
-mock_pedidos = {}
+end = Endpoints(url_base="http://localhost:9000")
+req = Requisicao(end)
 
-# Models
-class Usuario(BaseModel):
-    id_usuario: str
+class Endereco(BaseModel):
+    rua: str
+    numero: str
+    complemento: Optional[str] = None
+    bairro: str
+    cidade: str
+    estado: str
+    cep: str
+
+class CadastroUsuario(BaseModel):
+    id_usuario: str = None
+    nome: str
+    email: str
+    senha: str
+    telefone: Optional[str] = None
+    endereco: Endereco
+
+class LoginUsuario(BaseModel):
     email: str
     senha: str
 
 class Livro(BaseModel):
-    id_livro: str
+    idLivro: int
     titulo: str
     autor: str
 
@@ -32,96 +45,96 @@ class Pedido(BaseModel):
     id_usuario: str
 
 class CalculoFrete(BaseModel):
-    id_usuario: str
     cep: str
 
-class Validacao(BaseModel):
-    id_usuario: str
-    email: Optional[str] = None
-    senha: Optional[str] = None
-    endereco: Optional[str] = None
 
 @app.post("/v1/usuario/cadastrar/")
-async def cadastrar_usuario(usuario: Usuario):
-    if usuario.id_usuario in mock_usuarios:
-        raise HTTPException(status_code=400, detail="Usuário já existe")
-    mock_usuarios[usuario.id_usuario] = {
-        "email": usuario.email,
-        "senha": usuario.senha
-    }
-    print(f"DEBUG: Stored user data: {mock_usuarios}")
-    return {"message": "Usuário cadastrado com sucesso", "usuario": usuario}
+async def cadastrar_usuario(usuario: CadastroUsuario):
+    try:
+        v_email = validacao.validar_email(usuario.email)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"{e}")
+
+    try:
+        v_senha = validacao.validar_senha(usuario.senha)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"{e}")
+
+    usuario.id_usuario = str(uuid.uuid4())
+    cadastro_banco = req.cadastrar(usuario.dict())
+
+    return cadastro_banco
 
 @app.post("/v1/usuario/logar/")
-async def login_usuario(usuario: Usuario):
-    stored_user = mock_usuarios.get(usuario.id_usuario)
-    if stored_user and stored_user["senha"] == usuario.senha:
-        return {"message": "Login realizado com sucesso", "usuario": usuario}
-    raise HTTPException(status_code=401, detail="Credenciais inválidas")
+async def login_usuario(usuario: LoginUsuario):
 
-# Endpoints de livros
+    email_usuario = usuario.email
+    senha_usuario = usuario.senha
+    if not email_usuario or not senha_usuario:
+        raise HTTPException(status_code=400, detail="Email e senha são obrigatórios")
+
+    login_banco = req.logar(usuario.dict())
+    return login_banco
+    
+
 @app.get("/v1/livros/")
-async def listar_biblioteca():
-    return {"livros": mock_livros}
+async def listar_livros():
+    livros = req.listar_biblioteca()
+    if not livros:
+        raise HTTPException(status_code=404, detail="Nenhum livro encontrado")
+    return livros
 
 # Endpoints de carrinho
 @app.post("/v1/loja/carrinho/adicionar/{idLivro}")
-async def adicionar_ao_carrinho(idLivro: str):
-    for livro in mock_livros:
-        if livro["id"] == idLivro:
-            if idLivro not in mock_carrinhos:
-                mock_carrinhos[idLivro] = livro
-            return {"message": f"Livro {idLivro} adicionado ao carrinho", "livro": livro}
-    raise HTTPException(status_code=404, detail="Livro não encontrado")
+async def adicionar_ao_carrinho(idLivro: int):
+    if not idLivro:
+        raise HTTPException(status_code=400, detail="ID do livro é obrigatório")
+    
+    banco_adicionar_livro_carrinho = req.adicionar_no_carrinho(idLivro)
+    return banco_adicionar_livro_carrinho
 
 @app.delete("/v1/loja/carrinho/remover/{idLivro}")
-async def remover_do_carrinho(idLivro: str):
-    if idLivro in mock_carrinhos:
-        livro = mock_carrinhos.pop(idLivro)
-        return {"message": f"Livro {idLivro} removido do carrinho", "livro": livro}
-    raise HTTPException(status_code=404, detail="Livro não encontrado no carrinho")
+async def remover_do_carrinho(idLivro: int):
+    if not idLivro:
+        raise HTTPException(status_code=400, detail="ID do livro é obrigatório")
+    
+    banco_remover_livro_carrinho = req.remover_do_carrinho(idLivro)
+    return banco_remover_livro_carrinho
 
 # Endpoints de pedido
+# quando o usuario cria o pedido, é sintetizado todo o carrinho em um só pedido com um id, e assim o usuário pode confirmar ou cancelar
+@app.get("/v1/loja/pedido/criar/")
+async def criar_pedido_():
+    idPedido = str(uuid.uuid1())
+    banco_criar_pedido = req.criar_pedido(idPedido)
+    return banco_criar_pedido
+
 @app.post("/v1/loja/pedido/confirmar/{idPedido}")
 async def confirmar_pedido(idPedido: str):
-    if not mock_carrinhos:
-        raise HTTPException(status_code=400, detail="Carrinho vazio")
-    mock_pedidos[idPedido] = {
-        "items": list(mock_carrinhos.values()),
-        "status": "confirmado"
-    }
-    mock_carrinhos.clear()
-    return {"message": f"Pedido {idPedido} confirmado", "pedido": mock_pedidos[idPedido]}
+    if not idPedido:
+        raise HTTPException(status_code=400, detail="ID do pedido é obrigatório")
+    
+    banco_confirmar_pedido = req.confirmar_pedido(idPedido)
+    return banco_confirmar_pedido
 
 @app.delete("/v1/loja/pedido/cancelar/{idPedido}")
 async def cancelar_pedido(idPedido: str):
-    if idPedido in mock_pedidos:
-        pedido = mock_pedidos.pop(idPedido)
-        return {"message": f"Pedido {idPedido} cancelado", "pedido": pedido}
-    raise HTTPException(status_code=404, detail="Pedido não encontrado")
+    if not idPedido:
+        raise HTTPException(status_code=400, detail="ID do pedido é obrigatório")
+    
+    banco_cancelar_pedido = req.cancelar_pedido(idPedido)
+    return banco_cancelar_pedido
 
+    
+"""
 # Endpoint de cálculo de prazo
 @app.post("/v1/calculo/prazo-entrega/")
 async def calcular_prazo_entrega(calculo: CalculoFrete):
+    prazo_entrega = int(random.randint(1,10))
+    frete = format(float(random.uniform(10.0, 50.0)), '.2f')
+    print(prazo_entrega)
     return {
-        "endereco": "Endereço exemplo",
-        "prazo_entrega": "3 dias úteis",
-        "frete": 25.50
+        "prazo_entrega": f"{prazo_entrega} dias úteis",
+        "frete": frete
     }
-
-# Endpoints de validação
-@app.post("/v1/validar/email/")
-async def validar_email(validacao: Validacao):
-    return {"valid": True}
-
-@app.post("/v1/validar/senha/")
-async def validar_senha(validacao: Validacao):
-    return {"valid": True}
-
-@app.post("/v1/validar/pagamento/")
-async def validar_pagamento(pedido: Pedido):
-    return {"valid": True}
-
-@app.post("/v1/validar/endereco/")
-async def validar_endereco(validacao: Validacao):
-    return {"valid": True}
+"""
