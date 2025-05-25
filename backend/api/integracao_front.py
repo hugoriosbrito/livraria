@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel
 import hashlib
 from typing import List, Optional
@@ -6,11 +6,13 @@ import random
 import uuid
 from backend.validacao.validacao import Validacao
 from backend.api.requisicao import Endpoints, Requisicao
+from backend.api.autenticacao import AutenticacaoJWT
 
 #API DE INTEGRAÇÃO COM O FRONTEND
 
 app = FastAPI()
 validacao = Validacao()
+autenticacao = AutenticacaoJWT()
 
 end = Endpoints(url_base="http://localhost:9000")
 req = Requisicao(end)
@@ -69,7 +71,7 @@ async def cadastrar_usuario(usuario: CadastroUsuario):
     print("senha com hash: ", usuario.senha)
 
     usuario.id_usuario = str(uuid.uuid4())
-    cadastro_banco = req.cadastrar(usuario.dict())
+    cadastro_banco = req.cadastrar(usuario.model_dump())
 
     return cadastro_banco
 
@@ -89,7 +91,13 @@ async def login_usuario(usuario: LoginUsuario):
     if not email_usuario or not senha_usuario:
         raise HTTPException(status_code=400, detail="Email e senha são obrigatórios")
 
-    login_banco = req.logar(usuario.dict())
+    login_banco = req.logar(usuario.model_dump())
+
+    token = autenticacao.criar_token(user_data=login_banco["usuario"])
+
+    login_banco["token"] = token
+    login_banco["tipo_token"] = "Bearer"
+
     return login_banco
     
 
@@ -102,7 +110,7 @@ async def listar_livros():
 
 # Endpoints de carrinho
 @app.post("/v1/loja/carrinho/adicionar/{idLivro}")
-async def adicionar_ao_carrinho(idLivro: int):
+async def adicionar_ao_carrinho(idLivro: int, user: dict = Depends(autenticacao.verificar_token)):
     if not idLivro:
         raise HTTPException(status_code=400, detail="ID do livro é obrigatório")
     
@@ -110,7 +118,7 @@ async def adicionar_ao_carrinho(idLivro: int):
     return banco_adicionar_livro_carrinho
 
 @app.delete("/v1/loja/carrinho/remover/{idLivro}")
-async def remover_do_carrinho(idLivro: int):
+async def remover_do_carrinho(idLivro: int,  user: dict = Depends(autenticacao.verificar_token)):
     if not idLivro:
         raise HTTPException(status_code=400, detail="ID do livro é obrigatório")
     
@@ -120,13 +128,13 @@ async def remover_do_carrinho(idLivro: int):
 # Endpoints de pedido
 # quando o usuario cria o pedido, é sintetizado todo o carrinho em um só pedido com um id, e assim o usuário pode confirmar ou cancelar
 @app.get("/v1/loja/pedido/criar/")
-async def criar_pedido_():
+async def criar_pedido_(user: dict = Depends(autenticacao.verificar_token)):
     idPedido = str(uuid.uuid1())
     banco_criar_pedido = req.criar_pedido(idPedido)
     return banco_criar_pedido
 
 @app.post("/v1/loja/pedido/confirmar/{idPedido}")
-async def confirmar_pedido(idPedido: str):
+async def confirmar_pedido(idPedido: str,  user: dict = Depends(autenticacao.verificar_token)):
     if not idPedido:
         raise HTTPException(status_code=400, detail="ID do pedido é obrigatório")
     
@@ -134,7 +142,7 @@ async def confirmar_pedido(idPedido: str):
     return banco_confirmar_pedido
 
 @app.delete("/v1/loja/pedido/cancelar/{idPedido}")
-async def cancelar_pedido(idPedido: str):
+async def cancelar_pedido(idPedido: str,  user: dict = Depends(autenticacao.verificar_token)):
     if not idPedido:
         raise HTTPException(status_code=400, detail="ID do pedido é obrigatório")
     

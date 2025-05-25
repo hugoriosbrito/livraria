@@ -43,6 +43,11 @@ def test_api_integracao():
     except requests.exceptions.RequestException as e:
         print(f"Erro no login: {e}")
 
+    response_token = response.json()
+    token = response_token.get("token")
+
+    header = {"Authorization": f"Bearer {token}"}
+
     print("\nTeste listar biblioteca...")
     try:
         response = requests.get("http://localhost:8000/v1/livros/")
@@ -54,7 +59,7 @@ def test_api_integracao():
     print("\nTeste adicionar no carrinho 1...")
     idLivro = 1
     try:
-        response = requests.post(f"http://localhost:8000/v1/loja/carrinho/adicionar/{idLivro}")
+        response = requests.post(f"http://localhost:8000/v1/loja/carrinho/adicionar/{idLivro}", headers=header)
         print(f"Status: {response.status_code}")
         print(f"Resposta de adicionar carrinho: {response.text}")
     except requests.exceptions.RequestException as e:
@@ -63,7 +68,7 @@ def test_api_integracao():
     print("\nTeste adicionar no carrinho 2...")
     idLivro = 2
     try:
-        response = requests.post(f"http://localhost:8000/v1/loja/carrinho/adicionar/{idLivro}")
+        response = requests.post(f"http://localhost:8000/v1/loja/carrinho/adicionar/{idLivro}", headers=header)
         print(f"Status: {response.status_code}")
         print(f"Resposta de adicionar carrinho: {response.text}")
     except requests.exceptions.RequestException as e:
@@ -75,13 +80,14 @@ def test_api_integracao():
         response = requests.post(f"http://localhost:8000/v1/loja/carrinho/adicionar/{idLivro}")
         print(f"Status: {response.status_code}")
         print(f"Resposta de adicionar carrinho: {response.text}")
+        print(f"-- 'adicionar carrinho 3' está sem passar Bearer Token de propósito para testes --")
     except requests.exceptions.RequestException as e:
         print(f"Erro ao adicionar no carrinho: {e}")
 
     print("\nTeste remover do carrinho...")
     idLivroRemover = 1
     try:
-        response = requests.delete(f"http://localhost:8000/v1/loja/carrinho/remover/{idLivroRemover}")
+        response = requests.delete(f"http://localhost:8000/v1/loja/carrinho/remover/{idLivroRemover}", headers=header)
         print(f"Status: {response.status_code}")
         print(f"Resposta de remover carrinho: {response.text}")
     except requests.exceptions.RequestException as e:
@@ -89,7 +95,7 @@ def test_api_integracao():
 
     print("\nTeste criar pedido...")
     try:
-        response_criar_pedido = requests.get("http://localhost:8000/v1/loja/pedido/criar/")
+        response_criar_pedido = requests.get("http://localhost:8000/v1/loja/pedido/criar/", headers=header)
         print(f"Status: {response_criar_pedido.status_code}")
         print(f"Resposta de criar pedido: {response_criar_pedido.text}")
         
@@ -112,7 +118,7 @@ def test_api_integracao():
         
         print("\nTeste de confirmar pedido...") 
         try:
-            response = requests.post(f"http://localhost:8000/v1/loja/pedido/confirmar/{idPedido}")
+            response = requests.post(f"http://localhost:8000/v1/loja/pedido/confirmar/{idPedido}", headers=header)
             print(f"Status: {response.status_code}")
             print(f"Resposta de confirmar pedido: {response.text}")
         except requests.exceptions.RequestException as e:
@@ -120,7 +126,7 @@ def test_api_integracao():
 
         print("\nTeste de cancelar pedido...")
         try:
-            response = requests.delete(f"http://localhost:8000/v1/loja/pedido/cancelar/{idPedido}")
+            response = requests.delete(f"http://localhost:8000/v1/loja/pedido/cancelar/{idPedido}", headers=header)
             print(f"Status: {response.status_code}")
             print(f"Resposta de cancelar pedido: {response.text}")
         except requests.exceptions.RequestException as e:
