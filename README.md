@@ -174,7 +174,7 @@ O projeto inclui dois arquivos de teste:
 # Teste de integração completo
 python teste_integracao.py
 
-# Testes específicos da API
+# Testes específicos da API de acesso ao banco de dados
 python teste-backend-api-requisicao.py
 ```
 
