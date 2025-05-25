@@ -7,7 +7,7 @@ Este documento descreve a estrutura e funcionamento do backend da livraria, um s
 ```
 backend/
 ├── api/
-│   ├── requisicao.py      # Lógica de negócio e mock data
+│   ├── requisicao.py      # Módulo para requisições á API (Java) de acesso ao banco de dados
 │   ├── integracao_front.py # API FastAPI para integração com o frontend
 │   └── autenticacao.py    # Sistema de autenticação JWT
 └── validacao/
@@ -23,7 +23,7 @@ Este módulo implementa uma API REST usando FastAPI para integração com o fron
 #### Autenticação e Segurança
 - **Hash de Senhas**: Utiliza MD5 com salt "salt_de_teste" para proteger senhas
 - **JWT (JSON Web Token)**: Sistema de autenticação baseado em tokens para controle de acesso
-- **~Expiração de Token~**: Tokens com validade de 24 horas
+- **Expiração de Token**: Tokens com validade de 24 horas
 - **Rotas Protegidas**: Endpoints sensíveis protegidos por autenticação JWT
 - **Autenticação Bearer**: Utiliza padrão Bearer Token no header Authorization
 
