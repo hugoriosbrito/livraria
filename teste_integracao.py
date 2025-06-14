@@ -1,4 +1,3 @@
-import requests
 import backend.api.integracao_front as integracao
 
 def test_api_integracao():
