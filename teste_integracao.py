@@ -36,7 +36,7 @@ def test_api_integracao():
 
     print("\nTeste de download do livro...")
     try:
-        resposta = (integracao.realizar_download_livro(1))
+        resposta = (integracao.realizar_download_livro(1, 1))
         print(f"Resposta de download do livro: {resposta}")
     except Exception as e:
         print(f"Erro no download do livro: {e}")

@@ -5,7 +5,7 @@ from backend.api.requisicao import Endpoints, Requisicao
 
 validacao = Validacao()
 
-end = Endpoints(url_base="http://localhost:9000")
+end = Endpoints(url_base="http://api.livraria.spacenova.me")
 req = Requisicao(end)
 
 def cadastrar_usuario(usuario: dict[str, str]):
@@ -41,8 +41,8 @@ def listar_livros():
         raise Exception("Nenhum livro encontrado")
     return livros
 
-def realizar_download_livro(idLivro):
-    url_livro = req.realizar_download(idLivro)
+def realizar_download_livro(idLivro, idUsuario):
+    url_livro = req.realizar_download(idLivro, idUsuario)
     if not url_livro:
         raise Exception("Download do livro não encontrado")
     return url_livro
