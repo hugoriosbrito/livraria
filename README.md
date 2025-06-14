@@ -4,7 +4,6 @@ Este projeto é o backend de uma livraria digital, responsável por gerenciar us
 
 ## Como usar
 
-1. Instale as dependências:
    ```bash
    pip install -r requirements.txt
    ```
@@ -25,6 +24,9 @@ cadastrar_usuario({
     "email": "email@exemplo.com",
     "senha": "senha_segura"
 })
+=======
+# Testes específicos da API de acesso ao banco de dados
+python teste-backend-api-requisicao.py
 ```
 
 ### Login de Usuário
